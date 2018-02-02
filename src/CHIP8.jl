@@ -1,5 +1,5 @@
 module CHIP8
 
-# package code goes here
+export Chip
 
 end # module
