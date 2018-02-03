@@ -13,6 +13,8 @@ mutable struct Chip
 
     delay_timer::Char       # Delay timer
     sound_timer::Char       # Sound timer
+
+    drawFlag::Bool
 end
 
 "Construct Chip-8"
@@ -60,7 +62,8 @@ function Chip()
     Chip(gfx, key, 
          pc, opcode, I, sp,
          V, stack, memory,
-         delay_timer, sound_timer)
+         delay_timer, sound_timer,
+         true)
 end
 
 "Read in c8 file"
