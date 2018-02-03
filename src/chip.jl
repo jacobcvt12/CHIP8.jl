@@ -85,44 +85,106 @@ function emulateCycle(c8::Chip)
     # get the first 4 bits
     first4 = c8.opcode & 0xF000
 
+    # get X and Y
+    X = c8.opcode & 0x0f00 >> 8 + 1
+    Y = c8.opcode & 0x00f0 >> 4 + 1
+
     # process opcode
     # 0x1NNN Jumps to address NNN.
     if first4 == 0x1000 
         c8.pc = c8.opcode & 0x0FFF + 0x0001
     # 0x3XNN Skips the next instruction if VX equals NN.
     elseif first4 == 0x3000
-        if V[c8.opcode & 0x0f00 >> 8 + 1] == c8.opcode & 0x00ff
+        if V[X] == c8.opcode & 0x00ff
             c8.pc += 4
         else
             c8.pc += 2
         end
     # 0x4XNN Skips the next instruction if VX doesn't equal NN.
     elseif first4 == 0x4000
-        if V[c8.opcode & 0x0f00 >> 8 + 1] != c8.opcode & 0x00ff
+        if V[X] != c8.opcode & 0x00ff
             c8.pc += 4
         else
             c8.pc += 2
         end
     # 0x5XY0 Skips the next instruction if VX equals VY.
     elseif first4 == 0x5000
-        if V[c8.opcode & 0x0f00 >> 8 + 1] == 
-           V[c8.opcode & 0x00f0 >> 4 + 1]
+        if V[X] == V[Y]
             c8.pc += 4
         else
             c8.pc += 2
         end
     # 0x6XNN Sets VX to NN
     elseif first4 == 0x6000
-        V[c8.opcode & 0x0f00 >> 8 + 1] = c8.opcode & 0x00ff 
+        V[X] = c8.opcode & 0x00ff 
         c8.pc += 2
     # 0x7XNN Adds NN to VX
     elseif first4 == 0x7000
-        V[c8.opcode & 0x0f00 >> 8 + 1] += c8.opcode & 0x00ff 
+        V[X] += c8.opcode & 0x00ff 
+        c8.pc += 2
+    # 0x8XY* Manipulation of VX and VY
+    elseif first4 == 0x8000
+        last4 = c8.opcode & 0x000f
+
+        # Sets VX to the value of VY.
+        if last4 == 0x000
+            V[X] = V[Y]
+        # Sets VX to VX or VY. (Bitwise OR operation)
+        elseif last4 == 0x0001
+            V[X] |= V[Y]
+        # Sets VX to VX and VY. (Bitwise AND operation)
+        elseif last4 == 0x0002
+            V[X] &= V[Y]
+        # Sets VX to VX xor VY.
+        elseif last4 == 0x0003
+            V[X] ⊻= V[Y]
+        # Adds VY to VX. 
+        # VF is set to 1 when there's a carry, and to 0 when there isn't.
+        elseif last4 == 0x0004
+            if V[Y] > (0xff - V[X])
+                V[16] = 1
+            else
+                V[16] = 0
+            end
+            V[X] += V[Y]
+        # VY is subtracted from VX. 
+        # VF is set to 0 when there's a borrow, and 1 when there isn't.
+        elseif last4 == 0x0005
+            if V[Y] > V[X]
+                V[16] = 0
+            else
+                V[16] = 1
+            end
+            V[X] -= V[Y]
+        # Shifts VX right by one
+        # VF is set to the value of the least significant bit of VX 
+        # before the shift (modern implementation of 0x8XY6)
+        elseif last4 == 0x0006
+            V[16] = V[X] & 0x1
+            V[X] >>= 1
+        # Sets VX to VY minus VX. 
+        # VF is set to 0 when there's a borrow, and 1 when there isn't.
+        elseif last4 == 0x0007
+            if V[X] > V[Y]
+                V[16] = 0
+            else
+                V[16] = 1
+            end
+            V[X] = V[Y] - V[X]
+        # Shifts VX left by one
+        # VF is set to the value of the most significant bit of VX 
+        # before the shift (modern implementation of 0x8XYE)
+        elseif last4 == 0x000E
+            V[16] = V[X] >> 7
+            V[X] <<= 1
+        else
+            warn("Unknown opcode [0x8000]")
+        end
+
         c8.pc += 2
     # 0x9XY0 Skips the next instruction if VX doesn't equal VY.
     elseif first4 == 0x9000
-        if V[c8.opcode & 0x0f00 >> 8 + 1] != 
-           V[c8.opcode & 0x00f0 >> 4 + 1]
+        if V[X] != V[Y]
             c8.pc += 4
         else
             c8.pc += 2
