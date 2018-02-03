@@ -119,5 +119,13 @@ function emulateCycle(c8::Chip)
     elseif first4 == 0x7000
         V[c8.opcode & 0x0f00 >> 8 + 1] += c8.opcode & 0x00ff 
         c8.pc += 2
+    # 0x9XY0 Skips the next instruction if VX doesn't equal VY.
+    elseif first4 == 0x9000
+        if V[c8.opcode & 0x0f00 >> 8 + 1] != 
+           V[c8.opcode & 0x00f0 >> 4 + 1]
+            c8.pc += 4
+        else
+            c8.pc += 2
+        end
     end
 end
