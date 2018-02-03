@@ -238,9 +238,9 @@ function emulateCycle(c8::Chip)
             pixel = memory[c8.I + yline + 1]
             for xline in 0:7
                 if (pixel & (0x80 >> (xline))) != 0
-                    if(gfx[(V[X] + xline + ((V[Y] + yline) * 64))] == 1)
+                    if(gfx[(V[X] + xline + ((V[Y] + yline) * 64)) + 1] == 1)
                         V[16] = 1
-                        gfx[V[X] + xline + ((V[Y] + yline) * 64)] ⊻= 1
+                        gfx[V[X] + xline + ((V[Y] + yline) * 64) + 1] ⊻= 1
                     end
                 end
             end
