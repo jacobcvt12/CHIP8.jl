@@ -3,3 +3,4 @@ using Base.Test
 
 include("constructor.jl")
 include("io.jl")
+include("emulate.jl")

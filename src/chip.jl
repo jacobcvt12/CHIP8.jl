@@ -201,5 +201,8 @@ function emulateCycle(c8::Chip)
     elseif first4 == 0xc000
         V[X] = rand(0x00:0xff) & (c8.opcode * 0x00ff)
         c8.pc += 2
+    # temporary for testing
+    else
+        c8.pc += 2
     end
 end
