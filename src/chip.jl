@@ -90,9 +90,26 @@ function emulateCycle(c8::Chip)
     Y = c8.opcode & 0x00f0 >> 4 + 1
 
     # process opcode
+    if first4 == 0x0000
+        # Clears the screen.
+        if c8.opcode == 0x00e0
+            fill!(c8.gfx, 0x00)
+        # Returns from a subroutine.
+        elseif c8.opcode == 0x00ee
+            c8.sp -= 1
+            c8.pc = c8.stack[c8.sp + 1]
+            c8.pc += 2
+        else
+            warn("Unknown opcode")
+        end
     # 0x1NNN Jumps to address NNN.
-    if first4 == 0x1000 
+    elseif first4 == 0x1000 
         c8.pc = c8.opcode & 0x0FFF + 0x0001
+    # 0x2NNN Calls subroutine at NNN.
+    elseif first4 == 0x2000 
+        c8.stack[c8.sp+1] = c8.pc
+        c8.sp += 1
+        c8.pc = c8.opcode & 0x0fff
     # 0x3XNN Skips the next instruction if VX equals NN.
     elseif first4 == 0x3000
         if c8.V[X] == c8.opcode & 0x00ff
@@ -200,6 +217,33 @@ function emulateCycle(c8::Chip)
     # random number (Typically: 0 to 255) and NN.
     elseif first4 == 0xc000
         c8.V[X] = rand(0x00:0xff) & (c8.opcode * 0x00ff)
+        c8.pc += 2
+    # Draws a sprite at coordinate (VX, VY) that has a width of 8 pixels 
+    # and a height of N pixels. Each row of 8 pixels is read as 
+    # bit-coded starting from memory location I; I value doesn’t 
+    # change after the execution of this instruction. 
+    # As described above, VF is set to 1 if any screen pixels are 
+    # flipped from set to unset when the sprite is drawn, and to 0 
+    # if that doesn’t happen
+    elseif first4 == 0xd000
+        height = c8.opcode & 0x000f
+        pixel = 0x0000
+
+        V[16] = 0x00
+
+        for yline in 0:(height-1)
+            pixel = memory[c8.I + yline + 1]
+            for xline in 0:7
+                if (pixel & (0x80 >> (xline))) != 0
+                    if(gfx[(V[X] + xline + ((V[Y] + yline) * 64))] == 1)
+                        V[16] = 1
+                        gfx[V[X] + xline + ((V[Y] + yline) * 64)] ⊻= 1
+                    end
+                end
+            end
+        end
+
+        c8.drawFlag = true
         c8.pc += 2
     # temporary for testing
     else
