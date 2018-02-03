@@ -17,7 +17,7 @@ end
 
 "Construct Chip-8"
 function Chip()
-    pc = 0x200      # Program counter stars at 0x200
+    pc = 0x201      # Program counter stars at 0x200 + 1 (1-based index)
     opcode = 0x00   # Reset current opcode
     I = 0x00        # Reset index register
     sp = 0x00       # Reset stack pointer
@@ -73,5 +73,51 @@ function loadApplication(c8::Chip, fname::String)
 
             i += 1
         end
+    end
+end
+
+"Start the emulation"
+function emulateCycle(c8::Chip)
+    # fetch the opcode
+    c8.opcode = UInt16(c8.memory[c8.pc]) << 8 |
+                c8.memory[c8.pc + 1]
+
+    # get the first 4 bits
+    first4 = c8.opcode & 0xF000
+
+    # process opcode
+    # 0x1NNN Jumps to address NNN.
+    if first4 == 0x1000 
+        c8.pc = c8.opcode & 0x0FFF + 0x0001
+    # 0x3XNN Skips the next instruction if VX equals NN.
+    elseif first4 == 0x3000
+        if V[c8.opcode & 0x0f00 >> 8 + 1] == c8.opcode & 0x00ff
+            c8.pc += 4
+        else
+            c8.pc += 2
+        end
+    # 0x4XNN Skips the next instruction if VX doesn't equal NN.
+    elseif first4 == 0x4000
+        if V[c8.opcode & 0x0f00 >> 8 + 1] != c8.opcode & 0x00ff
+            c8.pc += 4
+        else
+            c8.pc += 2
+        end
+    # 0x5XY0 Skips the next instruction if VX equals VY.
+    elseif first4 == 0x5000
+        if V[c8.opcode & 0x0f00 >> 8 + 1] == 
+           V[c8.opcode & 0x00f0 >> 4 + 1]
+            c8.pc += 4
+        else
+            c8.pc += 2
+        end
+    # 0x6XNN Sets VX to NN
+    elseif first4 == 0x6000
+        V[c8.opcode & 0x0f00 >> 8 + 1] = c8.opcode & 0x00ff 
+        c8.pc += 2
+    # 0x7XNN Adds NN to VX
+    elseif first4 == 0x7000
+        V[c8.opcode & 0x0f00 >> 8 + 1] += c8.opcode & 0x00ff 
+        c8.pc += 2
     end
 end
