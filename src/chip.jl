@@ -63,3 +63,15 @@ function Chip()
          delay_timer, sound_timer)
 end
 
+"Read in c8 file"
+function loadApplication(c8::Chip, fname::String)
+    i = 512 + 1
+    open(fname) do f
+        while !eof(f)
+            buffer = read(f, UInt8)
+            c8.memory[i] = buffer
+
+            i += 1
+        end
+    end
+end
