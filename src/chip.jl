@@ -189,5 +189,17 @@ function emulateCycle(c8::Chip)
         else
             c8.pc += 2
         end
+    # Sets I to the address NNN.
+    elseif first4 == 0xa000
+        I = c8.opcode & 0x0fff
+        c8.pc += 2
+    # Jumps to the address NNN plus V0.
+    elseif first4 == 0xb000
+        c8.pc = (c8.opcode & 0x0fff) + V[1]
+    # Sets VX to the result of a bitwise and operation on a 
+    # random number (Typically: 0 to 255) and NN.
+    elseif first4 == 0xc000
+        V[X] = rand(0x00:0xff) & (c8.opcode * 0x00ff)
+        c8.pc += 2
     end
 end
