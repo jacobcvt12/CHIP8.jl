@@ -248,6 +248,27 @@ function emulateCycle(c8::Chip)
 
         c8.drawFlag = true
         c8.pc += 2
+    elseif first4 == 0xe000
+        # Skips the next instruction if the key stored in VX is pressed. 
+        if (c8.opcode & 0x00ff) == 0x009e
+            if c8.key[c8.V[X]] != 0
+                c8.pc += 4
+            else
+                c8.pc += 2
+            end
+        # Skips the next instruction if the key stored in VX isn't pressed
+        elseif (c8.opcode & 0x00ff) == 0x00a1
+            if c8.key[c8.V[X]] == 0
+                c8.pc += 4
+            else
+                c8.pc += 2
+            end
+        else
+            warn("Unknown opcode")
+        end
+    elseif first4 == 0xf000
+
+
     # temporary for testing
     else
         c8.pc += 2
