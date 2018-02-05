@@ -267,10 +267,79 @@ function emulateCycle(c8::Chip)
             warn("Unknown opcode")
         end
     elseif first4 == 0xf000
+        last4 = c8.opcode * 0x00ff
+        # Sets VX to the value of the delay timer.
+        if last4 == 0x0007
+           c8.V[X] = c8.delay_timer
+           c8.pc += 2
+        # A key press is awaited, and then stored in VX. 
+        # (Blocking Operation. All instruction halted until next key event)
+        elseif last4 == 0x000a
+            keyPresss = false
 
+            for i in 1:16
+                if key[i] != 0
+                    c8.V[X] = i
+                    keyPress = true
+                end
+            end
 
+            if !keyPress
+                return
+            end
+
+            c8.pc += 2
+        # Sets the delay timer to VX.
+        elseif last4 == 0x0015
+            c8.delay_timer = c8.V[X]
+            c8.pc += 2
+        # Sets the sound timer to VX.
+        elseif last4 == 0x0018
+            c8.sound_timer = c8.V[X]
+            c8.pc += 2
+        end
+        # Adds VX to I
+        elseif last4 == 0x001e
+            if c8.I + V[X] > 0xfff
+                c8.V[16] = 1
+            else
+                c8.V[16] = 0
+            end
+            c8.I += c8.V[X]
+            c8.pc += 2
+        # Sets I to the location of the sprite for the character in VX. 
+        # Characters 0-F (in hexadecimal) are represented by a 4x5 font.
+        elseif last4 == 0x0029
+            c8.I = c8.V[X] * 0x5
+            c8.pc += 2
+        # Stores the Binary-coded decimal representation of VX at the addresses I, I plus 1, and I plus 2
+        elseif last4 == 0x0033
+            c8.memory[c8.I]     = V[X] / 100
+            c8.memory[c8.I + 1] = (V[X] / 10) % 10
+            c8.memory[c8.I + 2] = (V[X] % 100) % 10
+            c8.pc += 2
+        # Stores V0 to VX (including VX) in memory starting at address I. 
+        # I is increased by 1 for each value written.
+        elseif last4 == 0x0055
+            for i in 1:X
+                c8.memory[I + i] = c8.V[i]
+            end
+
+            c8.I += X + 1
+            c8.pc += 2
+        # Fills V0 to VX (including VX) with values from memory starting at address I. 
+        # I is increased by 1 for each value written.
+        elseif last4 == 0x0065
+            for i in 1:X
+                c8.V[i] = c8.memory[I + i]
+            end
+
+            c8.I += X + 1
+            c8.pc += 2
+        end
     # temporary for testing
     else
+        warn("Unrecognized opcode")
         c8.pc += 2
     end
 end
