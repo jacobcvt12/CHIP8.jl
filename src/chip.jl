@@ -297,7 +297,6 @@ function emulateCycle(c8::Chip)
         elseif last4 == 0x0018
             c8.sound_timer = c8.V[X]
             c8.pc += 2
-        end
         # Adds VX to I
         elseif last4 == 0x001e
             if c8.I + V[X] > 0xfff
